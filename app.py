@@ -16,7 +16,7 @@ def deleteMoment(id_moment):
         "content": None,
         "erroData": {
             "typeError": "Unathourized",
-            "Moment não existe ou usuário não existe"
+            "message": "Moment não existe ou usuário não existe"
         }
     }
 
@@ -25,7 +25,18 @@ def deleteMoment(id_moment):
             response = json.dumps(response, default = json_util.default),
             mimetype="application/json"
         )   
-
+    else:
+        db.moment.delete_one({ "_id" : ObjectId (id_moment)})
+        response = {
+            "success": True,
+            "content": None,
+            "erroData": None
+        }
+        return app.response_class(
+            response = json.dumps(response, default = json_util.default),
+            mimetype="application/json"
+        )    
+    
 
 
 # inserir uma moment numa memorie line
@@ -50,8 +61,152 @@ def insertmoment(id_memory_line):
         mimetype="application/json"
     )
 
-# Reagir a um comentário
+# Inserir comentário no moment
+@app.route('/<id_moment>', methods = ['POST'])
+def insertCommentMoment(id_moment):
+    headerRequest =request.headers.get("user_id")
+    bodyRequest = request.json
+    db.comment.insert_one({
+        "creationDate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        "owner": headerRequest,
+        "content": bodyRequest,
+        "idMoment": id_moment,
+        "answer":[]
+    })
+    response = {
+        "success": True,
+        "content": None,
+        "erroData": None
+    }
+    return app.response_class(
+        response = json.dumps(response, default = json_util.default),
+        mimetype="application/json"
+    )
 
+# Responder comentário
+@app.route('/<id_moment>/comment/<id_comment>', methods = ['POST'])
+def answerCommentMoment(id_moment,id_comment):
+    headerRequest =request.headers.get("user_id")
+    bodyRequest = request.json
+    insert = db.comment.insert_one({
+        "creationDate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        "owner": headerRequest,
+        "content": bodyRequest,
+        "idMoment": id_moment,
+        "answer":[]
+    })   
+    initialComment = db.comment.find_one({ "_id" : ObjectId (id_comment)})
+    answer = initialComment["answer"]
+    answer.append(insert["insertedId"])
+    db.comment.update_one(
+        {
+             "_id" : ObjectId (id_comment)
+        },
+        {
+            "$set": {
+                "answer": answer
+            }
+        }
+    )
+    response = {
+        "success": True,
+        "content": None,
+        "erroData": None
+    }
+    return app.response_class(
+        response = json.dumps(response, default = json_util.default),
+        mimetype="application/json"
+    )
+
+# Apagar um comentário
+@app.route('/<id_moment>/comment/<id_comment>', methods = ['DELETE'])
+def answerCommentMoment(id_moment,id_comment):
+    headerRequest =request.headers.get("user_id")
+    comment = db.comment.find_one({ "_id" : ObjectId (id_comment)})
+    response = {
+        "success": False,
+        "content": None,
+        "erroData": {
+            "typeError": "Unathourized",
+            "message": "comentário não existe ou usuário inexistente"
+        }
+    }
+
+    if(comment == None or comment["owner"] != headerRequest):
+        return app.response_class(
+            response = json.dumps(response, default = json_util.default),
+            mimetype="application/json"
+        )   
+    else:
+        db.comment.delete_one({ "_id" : ObjectId (id_comment)})
+        response = {
+            "success": True,
+            "content": None,
+            "erroData": None
+        }
+        return app.response_class(
+            response = json.dumps(response, default = json_util.default),
+            mimetype="application/json"
+        )    
+
+# Editar um comentário
+@app.route('/<id_moment>/comment/<id_comment>', methods = ['PUT'])
+def updateCommentMoment(id_moment,id_comment):
+    headerRequest =request.headers.get("user_id")
+    bodyRequest = request.json
+    initialComment = db.comment.find_one({ "_id" : ObjectId (id_comment)})
+    content = initialComment["content"]
+    db.comment.update_one(
+        {
+             "_id" : ObjectId (id_comment)
+        },
+        {
+            "$set": {
+                "content": bodyRequest
+            }
+        }
+    )
+    response = {
+        "success": True,
+        "content": None,
+        "erroData": None
+    }
+    return app.response_class(
+        response = json.dumps(response, default = json_util.default),
+        mimetype="application/json"
+    )
+
+# Comentários de um moment
+@app.route('/<id_moment>/comment/<id_comment>', methods = ['GET'])
+def getCommentMoment(id_moment,id_comment):
+    headerRequest =request.headers.get("user_id")
+    query = db.comment.find()
+    response = {
+        "success": True,
+        "content": None,
+        "erroData": None
+    }
+    return app.response_class(
+        response = json.dumps(response, default = json_util.default),
+        mimetype="application/json"
+    )
+
+# Pegar um comentário especifico de um moment
+@app.route('/<id_moment>/comment/<id_comment>', methods = ['GET'])
+def getSpecificCommentMoment(id_moment,id_comment):
+    headerRequest =request.headers.get("user_id")
+    query = db.comment.find_one({ "_id" : ObjectId (id_comment)})
+    response = {
+        "success": True,
+        "content": None,
+        "erroData": None
+    }
+    return app.response_class(
+        response = json.dumps(response, default = json_util.default),
+        mimetype="application/json"
+    )
+
+# Reagir a um comentário
 
 # Atualizar uma reação no comentário
 
@@ -67,15 +222,6 @@ def insertmoment(id_memory_line):
 
 # Apagar reação de um moment
 
-# Inserir comentário no moment
-
-# Responder comentário
-
-# Apagar um comentário
-
-# Editar um comentário
-
-# Comentários de um moment
 
 
 
