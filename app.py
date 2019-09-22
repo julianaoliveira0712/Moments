@@ -62,7 +62,7 @@ def insertmoment(id_memory_line):
     )
 
 # Inserir comentário no moment
-@app.route('/<id_moment>', methods = ['POST'])
+@app.route('/<id_moment>/comment', methods = ['POST'])
 def insertCommentMoment(id_moment):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
@@ -120,7 +120,7 @@ def answerCommentMoment(id_moment,id_comment):
 
 # Apagar um comentário
 @app.route('/<id_moment>/comment/<id_comment>', methods = ['DELETE'])
-def answerCommentMoment(id_moment,id_comment):
+def deleteCommentMoment(id_moment,id_comment):
     headerRequest =request.headers.get("user_id")
     comment = db.comment.find_one({ "_id" : ObjectId (id_comment)})
     response = {
@@ -177,13 +177,23 @@ def updateCommentMoment(id_moment,id_comment):
     )
 
 # Comentários de um moment
-@app.route('/<id_moment>/comment/<id_comment>', methods = ['GET'])
-def getCommentMoment(id_moment,id_comment):
+@app.route('/<id_moment>/comment/', methods = ['GET'])
+def getCommentMoment(id_moment):
     headerRequest =request.headers.get("user_id")
-    query = db.comment.find()
+    comments = db.comment.find({"idMoment": id_moment})
+    commentsResponse = []
+    for row in comments:
+        commentsResponse.append({
+            "idComment": row['_id'],
+            "content": row['content'],
+            "owner": row['owner'],
+            "creationDate": row['creationDate'],
+            "answers": len(row['answer']),
+            "idMoment": row['idMoment']
+        })
     response = {
         "success": True,
-        "content": None,
+        "content": commentsResponse,
         "erroData": None
     }
     return app.response_class(
@@ -196,6 +206,35 @@ def getCommentMoment(id_moment,id_comment):
 def getSpecificCommentMoment(id_moment,id_comment):
     headerRequest =request.headers.get("user_id")
     query = db.comment.find_one({ "_id" : ObjectId (id_comment)})
+    comment = {
+            "idComment": query['_id'],
+            "content": query['content'],
+            "owner": query['owner'],
+            "creationDate": query['creationDate'],
+            "answers": len(query['answer']),
+            "idMoment": query['idMoment']
+        }
+    response = {
+        "success": True,
+        "content": comment,
+        "erroData": None
+    }
+    return app.response_class(
+        response = json.dumps(response, default = json_util.default),
+        mimetype="application/json"
+    )
+
+# Reagir a um alvo (moments ou comments)
+@app.route('<id_target>/reactions', methods = ['POST'])
+def insertReactTarget(id_target):
+    headerRequest =request.headers.get("user_id")
+    bodyRequest = request.json
+    react = db.reaction.insert_one({
+       "typeReaction": bodyRequest['type'],
+       "idTarget": id_target,
+        "owner": headerRequest,
+       "target": bodyRequest['target']
+    })
     response = {
         "success": True,
         "content": None,
@@ -206,21 +245,118 @@ def getSpecificCommentMoment(id_moment,id_comment):
         mimetype="application/json"
     )
 
-# Reagir a um comentário
+# Atualizar uma reação em um alvo (moments ou comments)
+@app.route('<id_target>/reactions', methods = ['PUT'])
+def updateReactTarget(id_target):
+    headerRequest =request.headers.get("user_id")
+    bodyRequest = request.json
+    db.reaction.update_one(
+        {
+             "_id" : ObjectId (id_target)
+        },
+        {
+            "$set": {
+                "content": bodyRequest
+            }
+        }
+    )
+    response = {
+        "success": True,
+        "content": None,
+        "erroData": None
+    }
+    return app.response_class(
+        response = json.dumps(response, default = json_util.default),
+        mimetype="application/json"
+    )
 
-# Atualizar uma reação no comentário
+# Apagar uma reação em um alvo (moments ou comments)
+@app.route('<id_target>/reactions', methods = ['DELETE'])
+def deleteReactTarget(id_moment,id_comment):
+    headerRequest =request.headers.get("user_id")
+    react = db.reaction.find_one({ "_id" : ObjectId (id_comment)})
+    response = {
+        "success": False,
+        "content": None,
+        "erroData": {
+            "typeError": "Unathourized",
+            "message": "reação ou usuário inexistente"
+        }
+    }
 
-# Apagar uma reação no comentário
+    if(react == None or react["owner"] != headerRequest):
+        return app.response_class(
+            response = json.dumps(response, default = json_util.default),
+            mimetype="application/json"
+        )   
+    else:
+        db.reation.delete_one({ "_id" : ObjectId (id_comment)})
+        response = {
+            "success": True,
+            "content": None,
+            "erroData": None
+        }
+        return app.response_class(
+            response = json.dumps(response, default = json_util.default),
+            mimetype="application/json"
+        )  
 
-# Reações de um moments
+# Reações de um alvo ( moments ou comments)
+@app.route('<id_target>/reactions', methods = ['GET'])
+def getReactTarget(id_target):
+    headerRequest =request.headers.get("user_id")
+    reactions = db.react.find({"idTarget": id_target})
+    reactionsResponse = []
+    for row in reactions:
+       # reactionsResponse.append({
+       #   "typeReaction": bodyRequest['type'],
+       #   "idTarget": id_target,
+       #   "owner": headerRequest,
+       #   "target": bodyRequest['target']  
+               
+        if (typeReaction == 'amei'):   
+            amei++
+            totalType =amei
 
-# Reações de um comentário
+        if (typeReaction == 'saudades'):   
+            saudades++
+            totalType = saudades
 
-# Reagir a um moment
+        if (typeReaction == 'nostalgico'):   
+            nostalgico++
+            totalType == nostalgico
 
-# Atualizar reação de um moment
+        if (typeReaction == 'triste'):   
+            triste++
+            totalType = triste 
 
-# Apagar reação de um moment
+        if (typeReaction == 'haha'):   
+            haha++
+            totalType = haha
+
+        if (typeReaction == 'nem lembro'):   
+            nemLembro++
+            totalType = nemLembro
+    
+        type = {
+                    "type": reactions['typeReaction'],
+                    "countType": totalType
+        }            
+    for row in type:
+    reactionsResponse.append(type)
+            
+    response = {
+        "success": True,
+        "content": reactionsResponse,
+        "erroData": None
+    }
+    return app.response_class(
+        response = json.dumps(response, default = json_util.default),
+        mimetype="application/json"
+    )
+
+
+
 
 
 
