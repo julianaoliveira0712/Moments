@@ -24,8 +24,8 @@ def deleteMoment(id_moment):
         "success": False,
         "content": None,
         "erroData": {
-            "typeError": "Unathourized",
-            "message": "Moment não existe ou usuário não existe"
+        "typeError": "Unathourized",
+        "message": "Moment não existe ou usuário não existe"
         }
     }
 
@@ -52,80 +52,113 @@ def deleteMoment(id_moment):
 @app.route('/<id_memory_line>', methods = ['POST'])
 def insertmoment(id_memory_line):
     headerRequest = request.headers.get("user_id")
+    memory = db.memoryLine.find_one({ "id_memoryLine" : ObjectId (id_memory_line)})
     bodyRequest = request.json
-    db.moment.insert_one({
-        "owner": headerRequest
-        "type": bodyRequest["typeMoment"],  
-        "urlBucket": bodyRequest["urlBucket"],
-        "creationDate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-        "description": bodyRequest["description"]
-    })
-    response = {
-        "success": True,
-        "content": None,
-        "erroData": None
-    }
-    return app.response_class(
-        response = json.dumps(response, default = json_util.default),
-        mimetype="application/json"
-    )
+    if(memory == None):
+        response = {
+                "success": False,
+                "content": None,
+                "erroData": {
+                "typeError": "Unathourized",
+                "message": "Moment não existe ou usuário não existe"
+                }
+            }
+    else:
+        db.moment.insert_one({
+            "owner": headerRequest
+            "type": bodyRequest["typeMoment"],  
+            "urlBucket": bodyRequest["urlBucket"],
+            "creationDate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "description": bodyRequest["description"]
+        })
+        response = {
+            "success": True,
+            "content": None,
+            "erroData": None
+        }
+        return app.response_class(
+            response = json.dumps(response, default = json_util.default),
+            mimetype="application/json"
+        )
 
 # Inserir comentário no moment
 @app.route('/<id_moment>/comment', methods = ['POST'])
 def insertCommentMoment(id_moment):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
-    db.comment.insert_one({
-        "creationDate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-        "owner": headerRequest,
-        "content": bodyRequest,
-        "idMoment": id_moment,
-        "answer":[]
-    })
-    response = {
-        "success": True,
-        "content": None,
-        "erroData": None
-    }
-    return app.response_class(
-        response = json.dumps(response, default = json_util.default),
-        mimetype="application/json"
-    )
+    moment = db.moment.find_one({ "moment" : ObjectId (id_moment)})
+    if(id_moment == None):
+        response = {
+                "success": False,
+                "content": None,
+                "erroData": {
+                "typeError": "Unathourized",
+                "message": "Moment não existe ou usuário não existe"
+                }
+            }
+    else:
+        db.comment.insert_one({
+            "creationDate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "owner": headerRequest,
+            "content": bodyRequest,
+            "idMoment": id_moment,
+            "answer":[]
+        })
+        response = {
+            "success": True,
+            "content": None,
+            "erroData": None
+        }
+        return app.response_class(
+            response = json.dumps(response, default = json_util.default),
+            mimetype="application/json"
+        )
 
 # Responder comentário
 @app.route('/<id_moment>/comment/<id_comment>', methods = ['POST'])
 def answerCommentMoment(id_moment,id_comment):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
-    insert = db.comment.insert_one({
-        "creationDate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-        "owner": headerRequest,
-        "content": bodyRequest,
-        "idMoment": id_moment,
-        "answer":[]
-    })   
-    initialComment = db.comment.find_one({ "_id" : ObjectId (id_comment)})
-    answer = initialComment["answer"]
-    answer.append(insert["insertedId"])
-    db.comment.update_one(
-        {
-             "_id" : ObjectId (id_comment)
-        },
-        {
-            "$set": {
-                "answer": answer
+    comment = db.comment.find_one({ "comment" : ObjectId (id_comment)})
+    if(comment == None ):
+        response = {
+            "success": False,
+            "content": None,
+            "erroData": {
+            "typeError": "Unathourized",
+            "message": "Moment não existe ou usuário não existe"
+                        }
+                }
+    else:
+        insert = db.comment.insert_one({
+            "creationDate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "owner": headerRequest,
+            "content": bodyRequest,
+            "idMoment": id_moment,
+            "answer":[]
+        })   
+        initialComment = db.comment.find_one({ "_id" : ObjectId (id_comment)})
+        answer = initialComment["answer"]
+        answer.append(insert["insertedId"])
+        db.comment.update_one(
+            {
+                "_id" : ObjectId (id_comment)
+            },
+            {
+                "$set": {
+                    "answer": answer
+                }
             }
+        )
+        response = {
+            "success": True,
+            "content": None,
+            "erroData": None
         }
-    )
-    response = {
-        "success": True,
-        "content": None,
-        "erroData": None
-    }
-    return app.response_class(
-        response = json.dumps(response, default = json_util.default),
-        mimetype="application/json"
-    )
+        return app.response_class(
+            response = json.dumps(response, default = json_util.default),
+            mimetype="application/json"
+        )
 
 # Apagar um comentário
 @app.route('/<id_moment>/comment/<id_comment>', methods = ['DELETE'])
