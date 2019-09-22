@@ -4,7 +4,16 @@ from flask import json
 from flask import request
 from bson import json_util, ObjectId
 from datetime import datetime
+from enum import Enum
 app = Flask(__name__)
+
+class TypeReactions(Enum):
+    AMEI = 0
+    SAUDADES = 1
+    NOSTALGICO = 2
+    TRISTE = 3
+    HAHA = 4
+    NEM_LEMBRO = 5
 
 # Apagar um moment de uma memoryLine
 @app.route('/<id_moment>', methods = ['DELETE'])
@@ -304,63 +313,32 @@ def deleteReactTarget(id_moment,id_comment):
 # Reações de um alvo ( moments ou comments)
 @app.route('<id_target>/reactions', methods = ['GET'])
 def getReactTarget(id_target):
-    headerRequest =request.headers.get("user_id")
+    headerRequest = request.headers.get("user_id")
     reactions = db.react.find({"idTarget": id_target})
     reactionsResponse = []
+    for reaction in TypeReactions:
+        reactionsResponse.append(0)
+
     for row in reactions:
-       # reactionsResponse.append({
-       #   "typeReaction": bodyRequest['type'],
-       #   "idTarget": id_target,
-       #   "owner": headerRequest,
-       #   "target": bodyRequest['target']  
-               
-        if (typeReaction == 'amei'):   
-            amei++
-            totalType =amei
+       for i, reaction in enumerate(TypeReactions):
+           if("TypeReactions." + row['typeReaction'] == reaction):
+                reactionsResponse[i] = reactionsResponse[i] + 1 
+                break
 
-        if (typeReaction == 'saudades'):   
-            saudades++
-            totalType = saudades
-
-        if (typeReaction == 'nostalgico'):   
-            nostalgico++
-            totalType == nostalgico
-
-        if (typeReaction == 'triste'):   
-            triste++
-            totalType = triste 
-
-        if (typeReaction == 'haha'):   
-            haha++
-            totalType = haha
-
-        if (typeReaction == 'nem lembro'):   
-            nemLembro++
-            totalType = nemLembro
+    reactionsObjects = []
     
-        type = {
-                    "type": reactions['typeReaction'],
-                    "countType": totalType
-        }            
-    for row in type:
-    reactionsResponse.append(type)
-            
+    for i, reaction in enumerate(reactionsResponse):
+        reactionsObjects.append({
+            "type": TypeReactions(i),
+            "quantity": reactionsResponse[i]
+        })
+
     response = {
         "success": True,
-        "content": reactionsResponse,
+        "content": reactionsObjects,
         "erroData": None
     }
     return app.response_class(
         response = json.dumps(response, default = json_util.default),
         mimetype="application/json"
     )
-
-
-
-
-
-
-
-
-
-
