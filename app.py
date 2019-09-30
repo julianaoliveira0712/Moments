@@ -15,8 +15,10 @@ class TypeReactions(Enum):
     HAHA = 4
     NEM_LEMBRO = 5
 
+baseUrl = '/moment'
+
 # Apagar um moment de uma memoryLine
-@app.route('/<id_moment>', methods = ['DELETE'])
+@app.route(baseUrl + '/<id_moment>', methods = ['DELETE'])
 def deleteMoment(id_moment):
     headerRequest = request.headers.get("user_id")
     moment = db.moment.find_one({ "_id" : ObjectId (id_moment)})
@@ -24,8 +26,8 @@ def deleteMoment(id_moment):
         "success": False,
         "content": None,
         "erroData": {
-        "typeError": "Unathourized",
-        "message": "Moment não existe ou usuário não existe"
+            "typeError": "Unathourized",
+            "message": "Moment não existe ou usuário não existe"
         }
     }
 
@@ -45,14 +47,12 @@ def deleteMoment(id_moment):
             response = json.dumps(response, default = json_util.default),
             mimetype="application/json"
         )    
-    
-
 
 # inserir uma moment numa memorie line
-@app.route('/<id_memory_line>', methods = ['POST'])
+@app.route(baseUrl + '/<id_memory_line>', methods = ['POST'])
 def insertmoment(id_memory_line):
     headerRequest = request.headers.get("user_id")
-    memory = db.memoryLine.find_one({ "id_memoryLine" : ObjectId (id_memory_line)})
+    memory = db.memoryLine.find_one({ "_id" : ObjectId (id_memory_line)})
     bodyRequest = request.json
     if(memory == None):
         response = {
@@ -65,9 +65,10 @@ def insertmoment(id_memory_line):
             }
     else:
         db.moment.insert_one({
-            "owner": headerRequest
+            "owner": headerRequest,
             "type": bodyRequest["typeMoment"],  
             "urlBucket": bodyRequest["urlBucket"],
+            "idMemoryLine": id_memory_line,
             "creationDate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             "description": bodyRequest["description"]
         })
@@ -76,13 +77,14 @@ def insertmoment(id_memory_line):
             "content": None,
             "erroData": None
         }
-        return app.response_class(
-            response = json.dumps(response, default = json_util.default),
-            mimetype="application/json"
-        )
+    
+    return app.response_class(
+        response = json.dumps(response, default = json_util.default),
+        mimetype="application/json"
+    )
 
 # Inserir comentário no moment
-@app.route('/<id_moment>/comment', methods = ['POST'])
+@app.route(baseUrl + '/<id_moment>/comment', methods = ['POST'])
 def insertCommentMoment(id_moment):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
@@ -115,7 +117,7 @@ def insertCommentMoment(id_moment):
         )
 
 # Responder comentário
-@app.route('/<id_moment>/comment/<id_comment>', methods = ['POST'])
+@app.route(baseUrl + '/<id_moment>/comment/<id_comment>', methods = ['POST'])
 def answerCommentMoment(id_moment,id_comment):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
@@ -161,7 +163,7 @@ def answerCommentMoment(id_moment,id_comment):
         )
 
 # Apagar um comentário
-@app.route('/<id_moment>/comment/<id_comment>', methods = ['DELETE'])
+@app.route(baseUrl + '/<id_moment>/comment/<id_comment>', methods = ['DELETE'])
 def deleteCommentMoment(id_moment,id_comment):
     headerRequest =request.headers.get("user_id")
     comment = db.comment.find_one({ "_id" : ObjectId (id_comment)})
@@ -192,7 +194,7 @@ def deleteCommentMoment(id_moment,id_comment):
         )    
 
 # Editar um comentário
-@app.route('/<id_moment>/comment/<id_comment>', methods = ['PUT'])
+@app.route(baseUrl + '/<id_moment>/comment/<id_comment>', methods = ['PUT'])
 def updateCommentMoment(id_moment,id_comment):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
@@ -219,7 +221,7 @@ def updateCommentMoment(id_moment,id_comment):
     )
 
 # Comentários de um moment
-@app.route('/<id_moment>/comment/', methods = ['GET'])
+@app.route(baseUrl + '/<id_moment>/comment/', methods = ['GET'])
 def getCommentMoment(id_moment):
     headerRequest =request.headers.get("user_id")
     comments = db.comment.find({"idMoment": id_moment})
@@ -244,7 +246,7 @@ def getCommentMoment(id_moment):
     )
 
 # Pegar um comentário especifico de um moment
-@app.route('/<id_moment>/comment/<id_comment>', methods = ['GET'])
+@app.route(baseUrl + '/<id_moment>/comment/<id_comment>', methods = ['GET'])
 def getSpecificCommentMoment(id_moment,id_comment):
     headerRequest =request.headers.get("user_id")
     query = db.comment.find_one({ "_id" : ObjectId (id_comment)})
@@ -267,7 +269,7 @@ def getSpecificCommentMoment(id_moment,id_comment):
     )
 
 # Reagir a um alvo (moments ou comments)
-@app.route('<id_target>/reactions', methods = ['POST'])
+@app.route(baseUrl + '/<id_target>/reactions', methods = ['POST'])
 def insertReactTarget(id_target):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
@@ -288,7 +290,7 @@ def insertReactTarget(id_target):
     )
 
 # Atualizar uma reação em um alvo (moments ou comments)
-@app.route('<id_target>/reactions', methods = ['PUT'])
+@app.route(baseUrl + '/<id_target>/reactions', methods = ['PUT'])
 def updateReactTarget(id_target):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
@@ -313,7 +315,7 @@ def updateReactTarget(id_target):
     )
 
 # Apagar uma reação em um alvo (moments ou comments)
-@app.route('<id_target>/reactions', methods = ['DELETE'])
+@app.route(baseUrl + '/<id_target>/reactions', methods = ['DELETE'])
 def deleteReactTarget(id_moment,id_comment):
     headerRequest =request.headers.get("user_id")
     react = db.reaction.find_one({ "_id" : ObjectId (id_comment)})
@@ -344,7 +346,7 @@ def deleteReactTarget(id_moment,id_comment):
         )  
 
 # Reações de um alvo ( moments ou comments)
-@app.route('<id_target>/reactions', methods = ['GET'])
+@app.route(baseUrl + '/<id_target>/reactions', methods = ['GET'])
 def getReactTarget(id_target):
     headerRequest = request.headers.get("user_id")
     reactions = db.react.find({"idTarget": id_target})
