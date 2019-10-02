@@ -88,7 +88,7 @@ def insertmoment(id_memory_line):
 def insertCommentMoment(id_moment):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
-    moment = db.moment.find_one({ "moment" : ObjectId (id_moment)})
+    moment = db.moment.find_one({ "_id" : ObjectId (id_moment)})
     if(id_moment == None):
         response = {
                 "success": False,
@@ -121,7 +121,7 @@ def insertCommentMoment(id_moment):
 def answerCommentMoment(id_moment,id_comment):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
-    comment = db.comment.find_one({ "comment" : ObjectId (id_comment)})
+    comment = db.comment.find_one({ "_id" : ObjectId (id_comment)})
     if(comment == None ):
         response = {
             "success": False,
@@ -132,16 +132,14 @@ def answerCommentMoment(id_moment,id_comment):
                         }
                 }
     else:
-        insert = db.comment.insert_one({
+        initialComment = db.comment.find_one({ "_id" : ObjectId (id_comment)})
+        answer = initialComment["answer"]
+        answer.append({
             "creationDate": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             "owner": headerRequest,
             "content": bodyRequest,
-            "idMoment": id_moment,
-            "answer":[]
-        })   
-        initialComment = db.comment.find_one({ "_id" : ObjectId (id_comment)})
-        answer = initialComment["answer"]
-        answer.append(insert["insertedId"])
+            "idMoment": id_moment
+        })
         db.comment.update_one(
             {
                 "_id" : ObjectId (id_comment)
@@ -227,8 +225,9 @@ def getCommentMoment(id_moment):
     comments = db.comment.find({"idMoment": id_moment})
     commentsResponse = []
     for row in comments:
+        id = str(row["_id"])
         commentsResponse.append({
-            "idComment": row['_id'],
+            "idComment": id,
             "content": row['content'],
             "owner": row['owner'],
             "creationDate": row['creationDate'],
@@ -349,7 +348,7 @@ def deleteReactTarget(id_moment,id_comment):
 @app.route(baseUrl + '/<id_target>/reactions', methods = ['GET'])
 def getReactTarget(id_target):
     headerRequest = request.headers.get("user_id")
-    reactions = db.react.find({"idTarget": id_target})
+    reactions = db.react.find({"_id":ObjectId (id_target)})
     reactionsResponse = []
     for reaction in TypeReactions:
         reactionsResponse.append(0)
