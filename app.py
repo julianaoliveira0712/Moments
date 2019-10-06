@@ -272,34 +272,45 @@ def getSpecificCommentMoment(id_moment,id_comment):
 def insertReactTarget(id_target):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
-    react = db.reaction.insert_one({
-       "typeReaction": bodyRequest['type'],
-       "idTarget": id_target,
+    query = db.reaction.find_one({"owner": headerRequest})
+    if(query != None):
+        response = {
+            "success": False,
+            "content": None,
+            "erroData": {
+            "typeError": "Unathourized",
+            "message": "impossible manito"
+            }
+        }
+    else:
+        react = db.reaction.insert_one({
+        "typeReaction": str(bodyRequest['type']).upper(),
+        "idTarget": id_target,
         "owner": headerRequest,
-       "target": bodyRequest['target']
-    })
-    response = {
-        "success": True,
-        "content": None,
-        "erroData": None
-    }
+        "target": bodyRequest['target']
+        })
+        response = {
+            "success": True,
+            "content": str(react.inserted_id),
+            "erroData": None
+        }
     return app.response_class(
         response = json.dumps(response, default = json_util.default),
         mimetype="application/json"
     )
 
 # Atualizar uma reação em um alvo (moments ou comments)
-@app.route(baseUrl + '/<id_target>/reactions', methods = ['PUT'])
-def updateReactTarget(id_target):
+@app.route(baseUrl + '/<id_target>/reactions/<id_reaction>', methods = ['PUT'])
+def updateReactTarget(id_target, id_reaction):
     headerRequest =request.headers.get("user_id")
     bodyRequest = request.json
     db.reaction.update_one(
         {
-             "_id" : ObjectId (id_target)
+             "_id" : ObjectId (id_reaction)
         },
         {
             "$set": {
-                "content": bodyRequest
+                "typeReaction": str(bodyRequest).upper()
             }
         }
     )
@@ -314,10 +325,10 @@ def updateReactTarget(id_target):
     )
 
 # Apagar uma reação em um alvo (moments ou comments)
-@app.route(baseUrl + '/<id_target>/reactions', methods = ['DELETE'])
-def deleteReactTarget(id_moment,id_comment):
+@app.route(baseUrl + '/<id_target>/reactions/<id_reaction>', methods = ['DELETE'])
+def deleteReactTarget(id_target, id_reaction):
     headerRequest =request.headers.get("user_id")
-    react = db.reaction.find_one({ "_id" : ObjectId (id_comment)})
+    react = db.reaction.find_one({ "_id" : ObjectId (id_reaction)})
     response = {
         "success": False,
         "content": None,
@@ -333,7 +344,7 @@ def deleteReactTarget(id_moment,id_comment):
             mimetype="application/json"
         )   
     else:
-        db.reation.delete_one({ "_id" : ObjectId (id_comment)})
+        db.reaction.delete_one({ "_id" : ObjectId (id_reaction)})
         response = {
             "success": True,
             "content": None,
@@ -348,28 +359,38 @@ def deleteReactTarget(id_moment,id_comment):
 @app.route(baseUrl + '/<id_target>/reactions', methods = ['GET'])
 def getReactTarget(id_target):
     headerRequest = request.headers.get("user_id")
-    reactions = db.react.find({"_id":ObjectId (id_target)})
+    reactions = db.reaction.find({"idTarget": id_target})
+    reactionId = None
     reactionsResponse = []
     for reaction in TypeReactions:
         reactionsResponse.append(0)
 
     for row in reactions:
-       for i, reaction in enumerate(TypeReactions):
-           if("TypeReactions." + row['typeReaction'] == reaction):
+        for i, reaction in enumerate(TypeReactions):
+           if("TypeReactions." + (str(row['typeReaction']).upper())== str(reaction)):
                 reactionsResponse[i] = reactionsResponse[i] + 1 
                 break
+        
+        if( row["owner"] == headerRequest):
+            reactionId =str(row["_id"])
+            
 
     reactionsObjects = []
     
     for i, reaction in enumerate(reactionsResponse):
         reactionsObjects.append({
-            "type": TypeReactions(i),
+            "type": str(TypeReactions(i)),
             "quantity": reactionsResponse[i]
         })
 
+    react ={
+        "idReaction": reactionId, 
+        "content": reactionsObjects
+    }
+
     response = {
         "success": True,
-        "content": reactionsObjects,
+        "content": react,
         "erroData": None
     }
     return app.response_class(
